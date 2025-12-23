@@ -105,7 +105,11 @@ export async function transpileQlikToPySpark(qlikScript: string, asModule: boole
       pysparkChunks.push("");
 
       // Process each chunk with LLM
-      for (const chunk of chunkResult.chunks) {
+      for (let i = 0; i < chunkResult.chunks.length; i++) {
+        const chunk = chunkResult.chunks[i];
+        const chunkNumber = i + 1;
+        const totalChunks = chunkResult.chunks.length;
+        
         if (chunk.type === 'comment') {
           // Keep comments as-is
           pysparkChunks.push(chunk.content);
@@ -124,14 +128,14 @@ export async function transpileQlikToPySpark(qlikScript: string, asModule: boole
             if (llmResponse.usage) {
               diagnostics.push({
                 type: "info",
-                message: `Chunk ${chunk.id}: ${llmResponse.usage.promptTokens} prompt + ${llmResponse.usage.completionTokens} completion tokens`,
+                message: `Chunk ${chunkNumber}/${totalChunks} (${chunk.id}): ${llmResponse.usage.promptTokens} prompt + ${llmResponse.usage.completionTokens} completion tokens`,
                 chunkId: chunk.id
               });
             }
           } else {
             diagnostics.push({
               type: "error",
-              message: `LLM conversion failed for chunk ${chunk.id}: ${llmResponse.error}`,
+              message: `Chunk ${chunkNumber}/${totalChunks} - LLM conversion failed for ${chunk.id}: ${llmResponse.error}`,
               chunkId: chunk.id
             });
             // Fallback to rule-based for this chunk
@@ -143,7 +147,7 @@ export async function transpileQlikToPySpark(qlikScript: string, asModule: boole
         } catch (error) {
           diagnostics.push({
             type: "error",
-            message: `LLM processing error for chunk ${chunk.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            message: `Chunk ${chunkNumber}/${totalChunks} - LLM processing error for ${chunk.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
             chunkId: chunk.id
           });
           // Fallback to rule-based for this chunk
